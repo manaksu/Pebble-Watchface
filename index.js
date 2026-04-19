@@ -1,52 +1,82 @@
 /* PebbleKit JS — Literary Watchface */
 
-var CONFIG_URL = 'https://manaksu.github.io/Pebble-Watchface/config.html';
-
-function send(w, f, s, c) {
-  Pebble.sendAppMessage(
-    { 'widget': w, 'font': f, 'style': s, 'colour': c },
-    function() { console.log('sent w='+w+' f='+f+' s='+s+' c='+c); },
-    function(e) { console.log('fail: '+JSON.stringify(e)); }
-  );
-}
-
 function getSettings() {
   return {
-    w: parseInt(localStorage.getItem('widget') || '3', 10),
-    f: parseInt(localStorage.getItem('font')   || '1', 10),
-    s: parseInt(localStorage.getItem('style')  || '0', 10),
-    c: parseInt(localStorage.getItem('colour') || '1', 10)
+    w: localStorage.getItem('widget') || '3',
+    f: localStorage.getItem('font')   || '1',
+    s: localStorage.getItem('style')  || '0',
+    c: localStorage.getItem('colour') || '1'
   };
 }
 
-Pebble.addEventListener('ready', function() {
-  console.log('Literary JS ready');
+function send(cfg) {
+  Pebble.sendAppMessage({
+    0: parseInt(cfg.w, 10),
+    1: parseInt(cfg.f, 10),
+    2: parseInt(cfg.s, 10),
+    3: parseInt(cfg.c, 10)
+  }, function(){}, function(){});
+}
+
+function buildURL() {
   var cfg = getSettings();
-  send(cfg.w, cfg.f, cfg.s, cfg.c);
+
+  function group(name, label, opts, sel) {
+    return '<p><b>' + label + '</b></p>' +
+      opts.map(function(l, i) {
+        return '<p><label><input type=radio name=' + name + ' value=' + i +
+               (String(i) === sel ? ' checked' : '') + '> ' + l + '</label></p>';
+      }).join('');
+  }
+
+  /* Build the close URL upfront with default values */
+  var closeBase = 'pebblejs://close#';
+
+  var html = '<!DOCTYPE html><html><head>'
+    + '<meta name=viewport content="width=device-width,initial-scale=1">'
+    + '<style>'
+    + 'body{font-family:sans-serif;padding:12px;font-size:16px;margin:0}'
+    + 'b{display:block;margin-top:14px;font-size:12px;color:#888;text-transform:uppercase;font-weight:normal}'
+    + 'p{margin:4px 0}'
+    + 'a#btn{display:block;margin-top:20px;padding:14px;background:#e02020;'
+    + 'color:#fff;text-align:center;text-decoration:none;border-radius:8px;font-size:16px}'
+    + '</style></head><body>'
+    + group('w', 'Widget',     ['Sine Wave','Bar Chart','Battery Line','Dot ECG'],  cfg.w)
+    + group('f', 'Font',       ['Compact','Standard','Bold','Large'],                cfg.f)
+    + group('s', 'Text Style', ['ALL CAPS','Mixed Case','all lower','BRIGHT UPPER'], cfg.s)
+    + group('c', 'Colour',     ['Pure White','Warm White','Soft Amber','Cool Gray','Pale Green'], cfg.c)
+    + '<a id=btn href=#>Save</a>'
+    + '<script>'
+    + 'function upd(){'
+    + 'function v(n){return document.querySelector("input[name="+n+"]:checked").value;}'
+    + 'document.getElementById("btn").href="pebblejs://close#"'
+    + '+encodeURIComponent(JSON.stringify({widget:+v("w"),font:+v("f"),style:+v("s"),colour:+v("c")}));}'
+    + 'document.querySelectorAll("input").forEach(function(i){i.onchange=upd;});'
+    + 'upd();'
+    + '<\/script>'
+    + '</body></html>';
+
+  return 'data:text/html,' + encodeURIComponent(html);
+}
+
+Pebble.addEventListener('ready', function() {
+  send(getSettings());
 });
 
 Pebble.addEventListener('showConfiguration', function() {
-  var cfg = getSettings();
-  var url = CONFIG_URL
-    + '?w=' + cfg.w
-    + '&f=' + cfg.f
-    + '&s=' + cfg.s
-    + '&c=' + cfg.c;
-  Pebble.openURL(url);
+  Pebble.openURL(buildURL());
 });
 
 Pebble.addEventListener('webviewclosed', function(e) {
   if (!e || !e.response || e.response === '' || e.response === 'CANCELLED') return;
   var raw = e.response;
-  if (raw.charAt(0) === '#') raw = raw.slice(1);
+  if (raw.indexOf('#') !== -1) raw = raw.split('#').pop();
   var cfg;
   try { cfg = JSON.parse(decodeURIComponent(raw)); }
-  catch(err) { console.log('parse error: ' + err); return; }
-  console.log('config received: ' + JSON.stringify(cfg));
-  if (cfg.widget  !== undefined) localStorage.setItem('widget',  String(cfg.widget));
-  if (cfg.font    !== undefined) localStorage.setItem('font',    String(cfg.font));
-  if (cfg.style   !== undefined) localStorage.setItem('style',   String(cfg.style));
-  if (cfg.colour  !== undefined) localStorage.setItem('colour',  String(cfg.colour));
-  var s = getSettings();
-  send(s.w, s.f, s.s, s.c);
+  catch(err) { return; }
+  if (cfg.widget  != null) localStorage.setItem('widget',  String(cfg.widget));
+  if (cfg.font    != null) localStorage.setItem('font',    String(cfg.font));
+  if (cfg.style   != null) localStorage.setItem('style',   String(cfg.style));
+  if (cfg.colour  != null) localStorage.setItem('colour',  String(cfg.colour));
+  send(getSettings());
 });
