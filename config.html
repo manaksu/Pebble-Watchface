@@ -11,7 +11,7 @@ h1{font-size:20px;font-weight:300;margin:0 0 4px}
 h2{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:.1em;margin:24px 0 8px}
 label{display:flex;align-items:center;gap:12px;background:#1a1a1a;border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;font-size:15px}
 input[type=radio]{accent-color:#e02020;width:20px;height:20px;flex-shrink:0}
-.swatch{width:16px;height:16px;border-radius:50%;flex-shrink:0}
+.swatch{width:16px;height:16px;border-radius:50%;flex-shrink:0;border:1px solid #333}
 button{width:100%;padding:15px;background:#e02020;color:#fff;border:0;border-radius:8px;font-size:16px;margin-top:28px;cursor:pointer}
 </style>
 </head>
@@ -35,6 +35,44 @@ button{width:100%;padding:15px;background:#e02020;color:#fff;border:0;border-rad
 <label><input type="radio" name="s" value="0"> ALL CAPS</label>
 <label><input type="radio" name="s" value="1"> Mixed Case</label>
 <label><input type="radio" name="s" value="2"> all lower</label>
+<label><input type="radio" name="s" value="3"> BRIGHT UPPER / dim lower</label>
+
+<h2>Text Colour</h2>
+<label><input type="radio" name="c" value="0"><span class="swatch" style="background:#ffffff"></span> Pure White</label>
+<label><input type="radio" name="c" value="1"><span class="swatch" style="background:#e8e0d0"></span> Warm White</label>
+<label><input type="radio" name="c" value="2"><span class="swatch" style="background:#d4b896"></span> Soft Amber</label>
+<label><input type="radio" name="c" value="3"><span class="swatch" style="background:#c8d0d8"></span> Cool Gray</label>
+<label><input type="radio" name="c" value="4"><span class="swatch" style="background:#c8d8c0"></span> Pale Green</label>
+
+<button onclick="save()">Save</button>
+
+<script>
+/* restore saved values from URL params */
+(function() {
+  var p = {};
+  location.search.replace(/[?&]([^=&]+)=([^&]*)/g, function(_, k, v) { p[k]=v; });
+  ['w','f','s','c'].forEach(function(n) {
+    var el = document.querySelector('input[name="'+n+'"][value="'+(p[n]||'')+'"]');
+    if (el) el.checked = true;
+  });
+  if (!document.querySelector('input[name="w"]:checked')) document.querySelector('input[name="w"][value="3"]').checked=true;
+  if (!document.querySelector('input[name="f"]:checked')) document.querySelector('input[name="f"][value="1"]').checked=true;
+  if (!document.querySelector('input[name="s"]:checked')) document.querySelector('input[name="s"][value="0"]').checked=true;
+  if (!document.querySelector('input[name="c"]:checked')) document.querySelector('input[name="c"][value="1"]').checked=true;
+})();
+
+function save() {
+  var w = document.querySelector('input[name="w"]:checked').value;
+  var f = document.querySelector('input[name="f"]:checked').value;
+  var s = document.querySelector('input[name="s"]:checked').value;
+  var c = document.querySelector('input[name="c"]:checked').value;
+  var result = encodeURIComponent(JSON.stringify({widget:+w,font:+f,style:+s,colour:+c}));
+  /* Must be synchronous inside button tap for iOS WebView */
+  window.location.href = 'pebblejs://close#' + result;
+}
+</script>
+</body>
+</html><label><input type="radio" name="s" value="2"> all lower</label>
 <label><input type="radio" name="s" value="3"> BRIGHT UPPER / dim lower</label>
 
 <h2>Text Colour</h2>
