@@ -1,0 +1,31 @@
+{
+    "author": "Manaksu",
+    "dependencies": {},
+    "keywords": [
+        "pebble-app"
+    ],
+    "name": "your-friend-who-keeps-track-of-you",
+    "pebble": {
+        "capabilities": [
+            "location",
+            "configurable",
+            "health"
+        ],
+        "displayName": "For all poetic folks out there",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "basalt"
+        ],
+        "uuid": "98a22d08-debf-41f2-9ed9-880325988c29",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "2.5.0"
+}
