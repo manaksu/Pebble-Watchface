@@ -24,10 +24,10 @@
 #define PERSIST_KEY_STYLE   4
 #define PERSIST_KEY_COLOUR  5
 
-#define MSG_KEY_WIDGET  1
-#define MSG_KEY_FONT    2
-#define MSG_KEY_STYLE   3
-#define MSG_KEY_COLOUR  4
+#define MSG_KEY_WIDGET  0
+#define MSG_KEY_FONT    1
+#define MSG_KEY_STYLE   2
+#define MSG_KEY_COLOUR  3
 
 #define STYLE_ALLCAPS      0
 #define STYLE_MIXED        1
@@ -624,9 +624,7 @@ static void inbox_received(DictionaryIterator *iter, void *context) {
   apply_settings();
 }
 
-static void inbox_dropped(AppMessageResult reason, void *context) {
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped: %d", (int)reason);
-}
+static void inbox_dropped(AppMessageResult reason, void *context) { (void)reason; }
 
 static void appmessage_init(void) {
   app_message_register_inbox_received(inbox_received);
