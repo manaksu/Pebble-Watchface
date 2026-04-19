@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Literary Settings</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,sans-serif;background:#0d0d0d;color:#fff;padding:20px 16px 48px}
+h1{font-size:20px;font-weight:300;margin:0 0 4px}
+.sub{font-size:12px;color:#555;margin:0 0 28px}
+h2{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:.1em;margin:24px 0 10px}
+label{display:flex;align-items:center;gap:12px;background:#1a1a1a;border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;font-size:15px}
+input[type=radio]{accent-color:#e02020;width:20px;height:20px;flex-shrink:0}
+button{width:100%;padding:15px;background:#e02020;color:#fff;border:0;border-radius:8px;font-size:16px;margin-top:28px;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>Literary</h1>
+<p class="sub">Watchface settings</p>
+
+<h2>Widget</h2>
+<label><input type="radio" name="w" value="0"> Sine Wave</label>
+<label><input type="radio" name="w" value="1"> Bar Chart</label>
+<label><input type="radio" name="w" value="2"> Battery Line</label>
+<label><input type="radio" name="w" value="3" checked> Dot ECG</label>
+
+<h2>Font</h2>
+<label><input type="radio" name="f" value="0"> Compact — Gothic 09</label>
+<label><input type="radio" name="f" value="1" checked> Standard — Gothic 14</label>
+<label><input type="radio" name="f" value="2"> Bold — Gothic 18</label>
+<label><input type="radio" name="f" value="3"> Large — Gothic 28</label>
+
+<button onclick="save()">Save</button>
+
+<script>
+/* restore saved values from URL params */
+(function() {
+  var params = {};
+  location.search.replace(/[?&]([^=&]+)=([^&]*)/g, function(_, k, v) {
+    params[k] = v;
+  });
+  if (params.w) {
+    var el = document.querySelector('input[name="w"][value="' + params.w + '"]');
+    if (el) el.checked = true;
+  }
+  if (params.f) {
+    var el = document.querySelector('input[name="f"][value="' + params.f + '"]');
+    if (el) el.checked = true;
+  }
+})();
+
+function save() {
+  var w = document.querySelector('input[name="w"]:checked').value;
+  var f = document.querySelector('input[name="f"]:checked').value;
+  location.href = 'pebblejs://close#' + encodeURIComponent(JSON.stringify({widget:+w, font:+f}));
+}
+</script>
+</body>
+</html>
