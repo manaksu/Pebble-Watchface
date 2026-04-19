@@ -18,11 +18,29 @@
 /*  CONSTANTS                                                          */
 /* ------------------------------------------------------------------ */
 
-#define PERSIST_KEY_MODE  1
-#define PERSIST_KEY_FONT  2
-#define PERSIST_KEY_CAPS  3
+#define PERSIST_KEY_MODE    1
+#define PERSIST_KEY_FONT    2
+#define PERSIST_KEY_CAPS    3
+#define PERSIST_KEY_STYLE   4
+#define PERSIST_KEY_COLOUR  5
+
 #define MSG_KEY_WIDGET  1
 #define MSG_KEY_FONT    2
+#define MSG_KEY_STYLE   3
+#define MSG_KEY_COLOUR  4
+
+#define STYLE_ALLCAPS      0
+#define STYLE_MIXED        1
+#define STYLE_LOWER        2
+#define STYLE_BRIGHT_UPPER 3
+#define STYLE_COUNT        4
+
+#define COLOUR_WHITE  0
+#define COLOUR_WARM   1
+#define COLOUR_AMBER  2
+#define COLOUR_COOL   3
+#define COLOUR_GREEN  4
+#define COLOUR_COUNT  5
 
 #define MODE_SINE     0
 #define MODE_BARS     1
@@ -90,7 +108,8 @@ static Layer  *s_widget_layer;
 static int s_phase  = 0;
 static int s_mode   = MODE_ECG;
 static int s_font   = FONT_GOTHIC14;
-static bool s_caps  = true;   /* all caps on by default */
+static int  s_style  = STYLE_ALLCAPS;
+static int  s_colour = COLOUR_WARM;
 
 /* Story segments — each has text + bright flag */
 typedef struct { char text[48]; bool bright; } Seg;
@@ -209,12 +228,28 @@ static const char *spick(const char **arr, int len, int seed) {
 static void to_upper(char *s) {
   for (; *s; s++) if (*s >= 'a' && *s <= 'z') *s = (char)(*s - 32);
 }
+static void to_lower(char *s) {
+  for (; *s; s++) if (*s >= 'A' && *s <= 'Z') *s = (char)(*s + 32);
+}
 
 static void seg_add(const char *text, bool bright) {
   if (s_seg_count >= MAX_SEGS) return;
   snprintf(s_segs[s_seg_count].text,
            sizeof(s_segs[s_seg_count].text), "%s", text);
-  if (s_caps) to_upper(s_segs[s_seg_count].text);
+  switch (s_style) {
+    case STYLE_ALLCAPS:
+      to_upper(s_segs[s_seg_count].text);
+      break;
+    case STYLE_LOWER:
+      to_lower(s_segs[s_seg_count].text);
+      break;
+    case STYLE_BRIGHT_UPPER:
+      if (s_segs[s_seg_count].bright) to_upper(s_segs[s_seg_count].text);
+      else to_lower(s_segs[s_seg_count].text);
+      break;
+    default: /* STYLE_MIXED — leave as-is */
+      break;
+  }
   s_segs[s_seg_count].bright = bright;
   s_seg_count++;
 }
@@ -265,9 +300,19 @@ static void build_story(int h, int m, int steps, int battery,
 /*  STORY LAYER — word-by-word word-wrap with bright/dim colours      */
 /* ------------------------------------------------------------------ */
 
+static GColor get_prose_colour(void) {
+  switch (s_colour) {
+    case COLOUR_WHITE: return GColorWhite;
+    case COLOUR_AMBER: return GColorFromRGB(212, 184, 150);
+    case COLOUR_COOL:  return GColorFromRGB(200, 208, 216);
+    case COLOUR_GREEN: return GColorFromRGB(200, 216, 192);
+    default:           return GColorFromRGB(232, 224, 208);
+  }
+}
+
 static void story_layer_update(Layer *layer, GContext *ctx) {
   GFont font   = get_story_font();
-  GColor dim   = GColorFromRGB(232, 224, 208);  /* warm off-white */
+  GColor dim   = get_prose_colour();
   GColor bright= GColorWhite;
 
   graphics_context_set_fill_color(ctx, GColorBlack);
@@ -554,6 +599,28 @@ static void inbox_received(DictionaryIterator *iter, void *context) {
       persist_write_int(PERSIST_KEY_FONT, s_font);
     }
   }
+  Tuple *st = dict_find(iter, MSG_KEY_STYLE);
+  if (st) {
+    int val = -1;
+    if (st->type == TUPLE_INT)     val = (int)st->value->int32;
+    if (st->type == TUPLE_UINT)    val = (int)st->value->uint32;
+    if (st->type == TUPLE_CSTRING) val = atoi(st->value->cstring);
+    if (val >= 0 && val < STYLE_COUNT) {
+      s_style = val;
+      persist_write_int(PERSIST_KEY_STYLE, s_style);
+    }
+  }
+  Tuple *ct = dict_find(iter, MSG_KEY_COLOUR);
+  if (ct) {
+    int val = -1;
+    if (ct->type == TUPLE_INT)     val = (int)ct->value->int32;
+    if (ct->type == TUPLE_UINT)    val = (int)ct->value->uint32;
+    if (ct->type == TUPLE_CSTRING) val = atoi(ct->value->cstring);
+    if (val >= 0 && val < COLOUR_COUNT) {
+      s_colour = val;
+      persist_write_int(PERSIST_KEY_COLOUR, s_colour);
+    }
+  }
   apply_settings();
 }
 
@@ -564,7 +631,7 @@ static void inbox_dropped(AppMessageResult reason, void *context) {
 static void appmessage_init(void) {
   app_message_register_inbox_received(inbox_received);
   app_message_register_inbox_dropped(inbox_dropped);
-  app_message_open(128, 128);
+  app_message_open(256, 256);
 }
 
 /* ================================================================== */
@@ -627,8 +694,14 @@ static void init(void) {
     ? persist_read_int(PERSIST_KEY_FONT) : FONT_GOTHIC14;
   if (s_font < 0 || s_font >= FONT_COUNT) s_font = FONT_GOTHIC14;
 
-  s_caps = persist_exists(PERSIST_KEY_CAPS)
-    ? persist_read_bool(PERSIST_KEY_CAPS) : true;
+  s_style = persist_exists(PERSIST_KEY_STYLE)
+    ? persist_read_int(PERSIST_KEY_STYLE) : STYLE_ALLCAPS;
+  if (s_style < 0 || s_style >= STYLE_COUNT) s_style = STYLE_ALLCAPS;
+
+  s_colour = persist_exists(PERSIST_KEY_COLOUR)
+    ? persist_read_int(PERSIST_KEY_COLOUR) : COLOUR_WARM;
+  if (s_colour < 0 || s_colour >= COLOUR_COUNT) s_colour = COLOUR_WARM;
+
 
   s_main_window = window_create();
   window_set_background_color(s_main_window, GColorBlack);
